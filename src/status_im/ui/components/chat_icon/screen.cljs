@@ -4,8 +4,7 @@
             [status-im.ui.components.chat-icon.styles :as styles]
             [status-im.ui.components.colors :as colors]
             [status-im.ui.components.react :as react]
-            [status-im.ui.screens.chat.photos :as photos])
-  (:require-macros [status-im.utils.views :refer [defview letsubs]]))
+            [status-im.ui.screens.chat.photos :as photos]))
 
 (defn default-chat-icon [name styles]
   (when-not (string/blank? name)
@@ -88,6 +87,18 @@
      [default-chat-icon name styles])
    (when dapp?
      [dapp-badge styles])])
+
+(defn contact-icon-view-chat [contact]
+  [contact-icon-view contact
+   {:container              styles/container-chat-list
+    :online-view-wrapper    styles/online-view-wrapper
+    :online-view            styles/online-view
+    :online-dot-left        styles/online-dot-left
+    :online-dot-right       styles/online-dot-right
+    :size                   60
+    :chat-icon              styles/chat-icon-chat-list
+    :default-chat-icon      (styles/default-chat-icon-chat-list colors/default-chat-color)
+    :default-chat-icon-text styles/default-chat-icon-text}])
 
 (defn contact-icon-contacts-tab [contact]
   [contact-icon-view contact

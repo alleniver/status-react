@@ -265,43 +265,44 @@
                 :min-height 24}]
    [enabled-note]])
 
-(defn pay-to-chat-message [{:keys [snt-amount fiat-amount fiat-currency
-                                   personalized-message style public-key tribute-status]}]
-  [react/view {:style style}
-   [react/view {:style {:flex-direction :row
-                        :align-items :center}}
-    [react/view {:style {:background-color colors/white
-                         :justify-content :center :align-items :center}}
-     [icons/icon :tiny-icons/tribute-to-talk {:color colors/blue}]]
-    [react/text {:style {:color       colors/gray
-                         :font-size   13
-                         :margin-left 4}}
-     (i18n/label :t/tribute-to-talk)]]
-   (when-not (string/blank? personalized-message)
+(defn pay-to-chat-message
+  [{:keys [snt-amount personalized-message style public-key tribute-status]}]
+  (let [fiat-amount @(re-frame/subscribe [:tribute-to-talk/fiat-value snt-amount])
+        fiat-currency @(re-frame/subscribe [:wallet/currency])]
+    [react/view {:style style}
+     [react/view {:style {:flex-direction :row
+                          :align-items :center}}
+      [react/view {:style {:background-color colors/white
+                           :justify-content :center :align-items :center}}
+       [icons/icon :tiny-icons/tribute-to-talk {:color colors/blue}]]
+      [react/text {:style {:color       colors/gray
+                           :font-size   13
+                           :margin-left 4}}
+       (i18n/label :t/tribute-to-talk)]]
+     (when-not (string/blank? personalized-message)
+       [react/view {:style styles/chat-sample-bubble}
+        [react/text (i18n/label :t/tribute-to-talk-sample-text)]])
      [react/view {:style styles/chat-sample-bubble}
-      [react/text (i18n/label :t/tribute-to-talk-sample-text)]])
-   [react/view {:style styles/chat-sample-bubble}
-    ;;TODO replace hardcoded values
-    [react/nested-text {:style {:font-size 22}}
-     (str snt-amount)
-     [{:style {:font-size 22 :color colors/gray}} " SNT"]]
-    [react/nested-text
-     {:style {:font-size 12}}
-     (str "~" fiat-amount)
-     [{:style {:font-size 12 :color colors/gray}} (str " " fiat-currency)]]
-    [react/view {:style styles/pay-to-chat-container}
-     (if (or (nil? public-key) (= tribute-status :required))
-       [react/text (cond-> {:style styles/pay-to-chat-text}
-                     public-key
-                     (assoc :on-press #(re-frame/dispatch [:tribute-to-talk.ui/on-pay-to-chat-pressed
-                                                           public-key])))
-        (i18n/label :t/pay-to-chat)]
-       [react/view {:style {:flex-direction :row}}
-        [react/view {:style (styles/payment-status-icon (= tribute-status :pending))}
-         [icons/icon (if (= tribute-status :pending) :tiny-icons/tiny-pending :tiny-icons/tiny-check)
-          {:color (if (= tribute-status :pending) colors/black colors/white)}]]
-        [react/text {:style styles/payment-status-text}
-         nil]])]]])
+      [react/nested-text {:style {:font-size 22}}
+       (str snt-amount)
+       [{:style {:font-size 22 :color colors/gray}} " SNT"]]
+      [react/nested-text
+       {:style {:font-size 12}}
+       (str "~" fiat-amount)
+       [{:style {:font-size 12 :color colors/gray}} (str " " (:code fiat-currency))]]
+      [react/view {:style styles/pay-to-chat-container}
+       (if (or (nil? public-key) (= tribute-status :required))
+         [react/text (cond-> {:style styles/pay-to-chat-text}
+                       public-key
+                       (assoc :on-press #(re-frame/dispatch [:tribute-to-talk.ui/on-pay-to-chat-pressed
+                                                             public-key])))
+          (i18n/label :t/pay-to-chat)]
+         [react/view {:style {:flex-direction :row}}
+          [react/view {:style (styles/payment-status-icon (= tribute-status :pending))}
+           [icons/icon (if (= tribute-status :pending) :tiny-icons/tiny-pending :tiny-icons/tiny-check)
+            {:color (if (= tribute-status :pending) colors/black colors/white)}]]
+          [react/text {:style styles/payment-status-text}
+           (tribute-to-talk/status-label tribute-status snt-amount)]])]]]))
 
 (defn learn-more [owner?]
   [react/view
@@ -323,8 +324,6 @@
                       :t/tribute-to-talk-paywall-learn-more-1))]]
     [separator]
     [pay-to-chat-message {:snt-amount 1000
-                          :fiat-amount 3.48
-                          :fiat-currency (i18n/label :t/usd-currency)
                           :personalized-message (i18n/label :t/tribute-to-talk-sample-text)
                           :style (assoc styles/learn-more-section :margin-top 24)}]
     [react/view {:style styles/learn-more-text-container-2}

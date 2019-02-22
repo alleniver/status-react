@@ -52,3 +52,15 @@
 
        (= step :personalized-message)
        (assoc :message screen-message)))))
+
+(re-frame/reg-sub
+ :tribute-to-talk/fiat-value
+ :<- [:prices]
+ :<- [:wallet/currency]
+ (fn [[prices currency] [_ snt-amount]]
+   (if snt-amount
+     (money/fiat-amount-value snt-amount
+                              :SNT
+                              (-> currency :code keyword)
+                              prices)
+     "0")))

@@ -3,15 +3,27 @@
   (:require [clojure.string :as string]
             [re-frame.core :as re-frame]
             [status-im.accounts.update.core :as accounts.update]
+            [status-im.contact.core :as contact]
             [status-im.contact.db :as contact.db]
+            [status-im.i18n :as i18n]
             [status-im.ipfs.core :as ipfs]
             [status-im.tribute-to-talk.db :as tribute-to-talk.db]
             [status-im.ui.screens.navigation :as navigation]
+            [status-im.ui.screens.wallet.db :as wallet.db]
             [status-im.utils.contenthash :as contenthash]
             [status-im.utils.ethereum.contracts :as contracts]
             [status-im.utils.ethereum.core :as ethereum]
+            [status-im.utils.ethereum.erc20 :as erc20]
+            [status-im.utils.ethereum.tokens :as tokens]
             [status-im.utils.fx :as fx]
-            [taoensso.timbre :as log]))
+            [status-im.utils.money :as money]))
+
+(fx/defn enable-whitelist
+  [{:keys [db] :as cofx}]
+  (if (tribute-to-talk.db/enabled? db)
+    {:db (assoc db :contacts/whitelist
+                (contact.db/get-contact-whitelist (vals (:contacts/contacts db))))}
+    {:db (dissoc db :contacts/whitelist)}))
 
 (fx/defn update-settings
   [{:keys [db] :as cofx} {:keys [snt-amount message update] :as new-settings}]
@@ -29,12 +41,13 @@
                                    (and (contains? new-settings :update)
                                         (nil? update))
                                    (dissoc :update))]
-    (accounts.update/update-settings
-     cofx
-     (-> account-settings
-         (assoc-in [:tribute-to-talk chain-keyword]
-                   tribute-to-talk-settings))
-     {})))
+    (fx/merge cofx
+              (accounts.update/update-settings
+               (-> account-settings
+                   (assoc-in [:tribute-to-talk chain-keyword]
+                             tribute-to-talk-settings))
+               {})
+              enable-whitelist)))
 
 (fx/defn mark-ttt-as-seen
   [{:keys [db] :as cofx}]
@@ -197,27 +210,111 @@
 
 (fx/defn check-manifest
   [{:keys [db] :as cofx} identity]
-  (or (contracts/call cofx
-                      {:contract :status/tribute-to-talk
-                       :method :get-manifest
-                       :params [(contact.db/public-key->address identity)]
-                       :return-params ["bytes"]
-                       :callback
-                       #(re-frame/dispatch
-                         (if-let [contenthash (first %)]
-                           [:tribute-to-talk.callback/check-manifest-success
-                            identity
-                            contenthash]
-                           [:tribute-to-talk.callback/no-manifest-found identity]))})
-      ;; `contracts/call` returns nil if there is no contract for the current network
-      ;; update settings if checking own manifest or do nothing otherwise
-      (when-let [me? (= identity
-                        (get-in cofx [:db :account/account :public-key]))]
-        (update-settings cofx nil))))
+  (when (and (not (get-in db [:chats identity :group-chat]))
+             (not (contact.db/whitelisted? (get-in db [:contacts/contacts identity]))))
+    (or (contracts/call cofx
+                        {:contract :status/tribute-to-talk
+                         :method :get-manifest
+                         :params [(contact.db/public-key->address identity)]
+                         :return-params ["bytes"]
+                         :callback
+                         #(re-frame/dispatch
+                           (if-let [contenthash (first %)]
+                             [:tribute-to-talk.callback/check-manifest-success
+                              identity
+                              contenthash]
+                             [:tribute-to-talk.callback/no-manifest-found identity]))})
+        ;; `contracts/call` returns nil if there is no contract for the current network
+        ;; update settings if checking own manifest or do nothing otherwise
+        (when-let [me? (= identity
+                          (get-in cofx [:db :account/account :public-key]))]
+          (update-settings cofx nil)))))
 
 (fx/defn check-own-manifest
   [cofx]
   (check-manifest cofx (get-in cofx [:db :account/account :public-key])))
+
+(defn tribute-status [{:keys [system-tags tribute-to-talk] :as contact}]
+  (let [tribute (:snt-amount tribute-to-talk)
+        tribute-tx-id (:tx-id tribute-to-talk)]
+    (cond (contains? system-tags :tribute-to-talk/paid) :paid
+          (not (nil? tribute-tx-id)) :pending
+          (pos? tribute) :required
+          :else :none)))
+
+(defn status-label
+  [tribute-status tribute]
+  (case tribute-status
+    :paid (i18n/label :t/tribute-state-paid)
+    :pending (i18n/label :t/tribute-state-pending)
+    :required (i18n/label :t/tribute-state-required {:snt-amount tribute})
+    :none nil))
+
+(defn- transaction-details
+  [contact symbol]
+  (-> contact
+      (select-keys [:name :address :public-key])
+      (assoc :symbol symbol
+             :gas (ethereum/estimate-gas symbol)
+             :from-chat? true)))
+
+(fx/defn pay-tribute
+  [{:keys [db] :as cofx} identity]
+  (let [{:keys [name address public-key tribute] :as recipient-contact}
+        (get-in db [:contacts/contacts identity])
+        sender-account     (:account/account db)
+        chain              (keyword (:chain db))
+        symbol             :STT
+        all-tokens         (:wallet/all-tokens db)
+        amount             (str tribute)
+        {:keys [decimals]} (tokens/asset-for all-tokens chain symbol)
+        {:keys [value]}    (wallet.db/parse-amount amount decimals)]
+    (contracts/call cofx
+                    {:contract :status/snt
+                     :method   :erc20/transfer
+                     :params   [address
+                                (money/formatted->internal value symbol decimals)]
+                     :details  {:to-name     name
+                                :public-key  public-key
+                                :from-chat?  true
+                                :symbol      symbol
+                                :amount-text amount
+                                :send-transaction-message? true}
+                     :on-result [:tribute-to-talk.ui/on-tribute-transaction-sent
+                                 identity]})))
+
+(fx/defn check-pay-tribute-tx
+  [{:keys [db] :as cofx} public-key]
+  (let [tribute-tx-id (get-in db [:contacts/contacts public-key :tribute-to-talk :tx-id])
+        confirmations (-> (get-in db [:wallet :transactions tribute-tx-id :confirmations] 0)
+                          js/parseInt)
+        paid? (<= 1 confirmations)]
+    (if paid?
+      (fx/merge
+       {:db (update-in db [:contacts/contacts public-key :system-tags]
+                       #(conj % :tribute-to-talk/paid))}
+       (contact/add-to-whitelist public-key))
+      {:dispatch-later [{:ms 10000
+                         :dispatch [:tribute-to-talk/check-pay-tribute-tx-timeout public-key]}]})))
+
+(fx/defn on-tribute-transaction-sent
+  [{:keys [db] :as cofx} public-key tx-id]
+  (fx/merge cofx
+            {:db (assoc-in db [:contacts/contacts public-key :tribute-to-talk :tx-id] tx-id)}
+            (navigation/navigate-to-clean :wallet-transaction-sent-modal {})
+            (check-pay-tribute-tx public-key)))
+
+(defn add-tx-id
+  [message db]
+  (let [to (get-in message [:content :chat-id])
+        tribute-tx-id (get-in db [:contacts/contacts to :tribute-to-talk :tx-id])]
+    (if tribute-tx-id
+      (assoc-in message [:content :tribute-tx-id] tribute-tx-id)
+      message)))
+
+(defn tribute-paid?
+  [contact]
+  (contains? (:system-tags contact) :tribute-to-talk/paid))
 
 (fx/defn set-manifest-signing-flow
   [{:keys [db] :as cofx} hash]

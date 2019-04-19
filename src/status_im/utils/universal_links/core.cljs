@@ -13,6 +13,7 @@
             [status-im.ui.screens.navigation :as navigation]
             [status-im.utils.config :as config]
             [status-im.utils.fx :as fx]
+            [status-im.utils.ethereum.eip681 :as eip681]
             [taoensso.timbre :as log]
             [status-im.utils.platform :as platform]
             [status-im.constants :as constants]))
@@ -79,6 +80,10 @@
   (log/info "universal-links: handling url profile" url)
   (extensions.registry/load cofx url false))
 
+(fx/defn handle-eip681 [cofx url]
+  {:dispatch-n [[:navigate-to :wallet-send-transaction]
+                [:wallet/fill-request-from-url url :deep-link]]})
+
 (defn handle-not-found [full-url]
   (log/info "universal-links: no handler for " full-url))
 
@@ -104,6 +109,9 @@
 
     (and config/extensions-enabled? (match-url url extension-regex))
     (handle-extension cofx url)
+
+    (some? (eip681/parse-uri url))
+    (handle-eip681 cofx url)
 
     :else (handle-not-found url)))
 

@@ -61,8 +61,8 @@
   [(share-chat chat-id)
    (clear-history)
    (fetch-history chat-id)
-   #_(fetch-history48-60 chat-id)
-   #_(fetch-history84-96 chat-id)
+   (fetch-history48-60 chat-id)
+   (fetch-history84-96 chat-id)
    (delete-chat chat-id false)])
 
 (defn actions [group-chat? chat-id public?]

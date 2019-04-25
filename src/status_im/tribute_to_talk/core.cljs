@@ -19,13 +19,6 @@
             [status-im.utils.fx :as fx]
             [status-im.utils.money :as money]))
 
-(fx/defn enable-whitelist
-  [{:keys [db] :as cofx}]
-  (if (tribute-to-talk.db/enabled? db)
-    {:db (assoc db :contacts/whitelist
-                (contact.db/get-contact-whitelist (vals (:contacts/contacts db))))}
-    {:db (dissoc db :contacts/whitelist)}))
-
 (fx/defn update-settings
   [{:keys [db] :as cofx} {:keys [snt-amount message update] :as new-settings}]
   (let [account-settings (get-in db [:account/account :settings])
@@ -48,7 +41,7 @@
                    (assoc-in [:tribute-to-talk chain-keyword]
                              tribute-to-talk-settings))
                {})
-              enable-whitelist)))
+              tribute-to-talk.db/enable-whitelist)))
 
 (fx/defn mark-ttt-as-seen
   [{:keys [db] :as cofx}]
@@ -212,7 +205,7 @@
 (fx/defn check-manifest
   [{:keys [db] :as cofx} identity]
   (when (and (not (get-in db [:chats identity :group-chat]))
-             (not (contact.db/whitelisted? (get-in db [:contacts/contacts identity]))))
+             (not (tribute-to-talk.db/whitelisted? (get-in db [:contacts/contacts identity]))))
     (or (contracts/call cofx
                         {:contract :status/tribute-to-talk
                          :method :get-manifest
@@ -294,7 +287,7 @@
       (fx/merge
        {:db (update-in db [:contacts/contacts public-key :system-tags]
                        #(conj % :tribute-to-talk/paid))}
-       (contact/add-to-whitelist public-key))
+       (tribute-to-talk.db/add-to-whitelist public-key))
       {:dispatch-later [{:ms 10000
                          :dispatch [:tribute-to-talk/check-pay-tribute-tx-timeout public-key]}]})))
 

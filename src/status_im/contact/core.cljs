@@ -22,7 +22,7 @@
                      (update :contacts/contacts #(merge contacts %))
                      (assoc :contacts/blocked (contact.db/get-blocked-contacts all-contacts)))
            tr-to-talk-enabled?
-           (assoc :contacts/whitelist (contact.db/get-contact-whitelist all-contacts)))}))
+           (assoc :contacts/whitelist (tribute-to-talk/get-contact-whitelist all-contacts)))}))
 
 (defn build-contact
   [{{:keys [chats] :account/keys [account]
@@ -57,11 +57,6 @@
     (protocol/send (message.contact/map->ContactRequest (own-info db)) public-key cofx)
     (protocol/send (message.contact/map->ContactRequestConfirmed (own-info db)) public-key cofx)))
 
-(fx/defn add-to-whitelist
-  "Add contact to whitelist"
-  [{:keys [db]} public-key]
-  {:db (update db :contacts/whitelist #(conj (or % (hash-set)) public-key))})
-
 (fx/defn add-contact
   "Add a contact and set pending to false"
   [{:keys [db] :as cofx} public-key]
@@ -77,7 +72,7 @@
                  {:chat-ids [public-key]
                   :topic    transport.topic/discovery-topic-hash
                   :fetch?   false})
-                (add-to-whitelist public-key)
+                (tribute-to-talk/add-to-whitelist public-key)
                 (send-contact-request contact)
                 (mailserver/process-next-messages-request)))))
 

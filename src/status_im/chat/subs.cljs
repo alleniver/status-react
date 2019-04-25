@@ -10,6 +10,7 @@
             [status-im.group-chats.db :as group-chats.db]
             [status-im.models.transactions :as transactions]
             [status-im.tribute-to-talk.core :as tribute-to-talk]
+            [status-im.tribute-to-talk.db :as tribute-to-talk.db]
             [status-im.ui.components.bottom-bar.styles :as tabs.styles]
             [status-im.ui.components.toolbar.styles :as toolbar.styles]
             [status-im.ui.screens.chat.stickers.styles :as stickers.styles]
@@ -131,7 +132,7 @@
   [{:keys [contact] :as current-chat}]
   (let [{:keys [tribute-to-talk]} contact
         {:keys [disabled?]} tribute-to-talk
-        whitelisted-by? (contact.db/whitelisted-by? contact)
+        whitelisted-by? (tribute-to-talk.db/whitelisted-by? contact)
         loading? (and (not whitelisted-by?)
                       (not tribute-to-talk))
         show-header? (and (not loading?)

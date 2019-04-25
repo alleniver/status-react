@@ -134,23 +134,6 @@
   ([db public-key]
    (added? (get-in db [:contacts/contacts public-key]))))
 
-(defn whitelisted-by? [{:keys [system-tags]}]
-  (or (contains? system-tags :contact/request-received)
-      (contains? system-tags :tribute-to-talk/paid)
-      (contains? system-tags :tribute-to-talk/received)))
-
-(defn whitelisted? [{:keys [system-tags]}]
-  (or (contains? system-tags :contact/added)
-      (contains? system-tags :tribute-to-talk/paid)
-      (contains? system-tags :tribute-to-talk/received)))
-
-(defn get-contact-whitelist
-  [contacts]
-  (reduce (fn [acc {:keys [public-key] :as contact}]
-            (if (whitelisted? contact)
-              (conj acc public-key) acc))
-          (hash-set) contacts))
-
 (defn blocked?
   ([{:keys [system-tags]}]
    (contains? system-tags :contact/blocked))

@@ -115,23 +115,23 @@
                   (send-direct-message current-public-key nil this)
                   (send-with-pubkey params)))))
   (receive [this chat-id signature timestamp cofx]
-    (when (tribute-to-talk/filter-message cofx
-                                          message-type
-                                          (get-in this [:content :tribute-tx-id])
-                                          signature)
-      {:chat-received-message/add-fx
-       [(assoc (into {} this)
-               :old-message-id (transport.utils/old-message-id this)
-               :message-id (transport.utils/message-id
-                            signature
-                            (.-payload (:js-obj cofx)))
-               :chat-id chat-id
-               :whisper-timestamp timestamp
-               :raw-payload-hash (transport.utils/sha3
-                                  (.-payload (:js-obj cofx)))
-               :from signature
-               :dedup-id (:dedup-id cofx)
-               :js-obj (:js-obj cofx))]}))
+    (let [received-message-fx {:chat-received-message/add-fx
+                               [(assoc (into {} this)
+                                       :old-message-id (transport.utils/old-message-id this)
+                                       :message-id (transport.utils/message-id
+                                                    signature
+                                                    (.-payload (:js-obj cofx)))
+                                       :chat-id chat-id
+                                       :whisper-timestamp timestamp
+                                       :raw-payload-hash (transport.utils/sha3
+                                                          (.-payload (:js-obj cofx)))
+                                       :from signature
+                                       :dedup-id (:dedup-id cofx)
+                                       :js-obj (:js-obj cofx))]}]
+      (tribute-to-talk/filter-message cofx received-message-fx
+                                      message-type
+                                      (get-in this [:content :tribute-tx-id])
+                                      signature)))
   (validate [this]
     (if (spec/valid? :message/message this)
       this

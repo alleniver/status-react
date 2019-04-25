@@ -281,7 +281,7 @@
        (i18n/label :t/tribute-to-talk)]]
      (when-not (string/blank? personalized-message)
        [react/view {:style styles/chat-sample-bubble}
-        [react/text (i18n/label :t/tribute-to-talk-sample-text)]])
+        [react/text personalized-message]])
      [react/view {:style styles/chat-sample-bubble}
       [react/nested-text {:style {:font-size 22}}
        (str snt-amount)

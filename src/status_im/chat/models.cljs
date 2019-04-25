@@ -255,7 +255,7 @@
             (when platform/desktop?
               (mark-messages-seen chat-id))
             #_(when (one-to-one-chat? % chat-id)
-               (contact.core/create-contact % chat-id))
+                (contact.core/create-contact % chat-id))
             (tribute-to-talk/check-manifest chat-id)))
 
 (fx/defn navigate-to-chat

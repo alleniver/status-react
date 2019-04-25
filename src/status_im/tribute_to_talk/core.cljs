@@ -184,7 +184,7 @@
                  :set-snt-amount)})
 
 (fx/defn fetch-manifest
-  [{:keys [db] :as cofx} identity contenthash]
+  [{:keys [db] :as cofx} public-key contenthash]
   (contenthash/cat cofx
                    {:contenthash contenthash
                     :on-failure
@@ -192,35 +192,35 @@
                       (re-frame/dispatch
                        (if (= 503 error)
                          [:tribute-to-talk.callback/fetch-manifest-failure
-                          identity contenthash]
-                         [:tribute-to-talk.callback/no-manifest-found identity])))
+                          public-key contenthash]
+                         [:tribute-to-talk.callback/no-manifest-found public-key])))
                     :on-success
                     (fn [manifest-json]
                       (let [manifest (js->clj (js/JSON.parse manifest-json)
                                               :keywordize-keys true)]
                         (re-frame/dispatch
                          [:tribute-to-talk.callback/fetch-manifest-success
-                          identity manifest])))}))
+                          public-key manifest])))}))
 
 (fx/defn check-manifest
-  [{:keys [db] :as cofx} identity]
-  (when (and (not (get-in db [:chats identity :group-chat]))
-             (not (tribute-to-talk.db/whitelisted? (get-in db [:contacts/contacts identity]))))
+  [{:keys [db] :as cofx} public-key]
+  (when (and (not (get-in db [:chats public-key :group-chat]))
+             (not (tribute-to-talk.db/whitelisted? (get-in db [:contacts/contacts public-key]))))
     (or (contracts/call cofx
                         {:contract :status/tribute-to-talk
                          :method :get-manifest
-                         :params [(contact.db/public-key->address identity)]
+                         :params [(contact.db/public-key->address public-key)]
                          :return-params ["bytes"]
                          :callback
                          #(re-frame/dispatch
                            (if-let [contenthash (first %)]
                              [:tribute-to-talk.callback/check-manifest-success
-                              identity
+                              public-key
                               contenthash]
-                             [:tribute-to-talk.callback/no-manifest-found identity]))})
+                             [:tribute-to-talk.callback/no-manifest-found public-key]))})
         ;; `contracts/call` returns nil if there is no contract for the current network
         ;; update settings if checking own manifest or do nothing otherwise
-        (when-let [me? (= identity
+        (when-let [me? (= public-key
                           (get-in cofx [:db :account/account :public-key]))]
           (update-settings cofx nil)))))
 
@@ -253,9 +253,9 @@
              :from-chat? true)))
 
 (fx/defn pay-tribute
-  [{:keys [db] :as cofx} identity]
+  [{:keys [db] :as cofx} public-key]
   (let [{:keys [name address public-key tribute-to-talk] :as recipient-contact}
-        (get-in db [:contacts/contacts identity])
+        (get-in db [:contacts/contacts public-key])
         {:keys [snt-amount]} tribute-to-talk
         sender-account       (:account/account db)
         chain                (keyword (:chain db))
@@ -276,7 +276,7 @@
                                 :amount-text amount-text
                                 :send-transaction-message? true}
                      :on-result [:tribute-to-talk.ui/on-tribute-transaction-sent
-                                 identity]})))
+                                 public-key]})))
 
 (fx/defn check-pay-tribute-tx
   [{:keys [db] :as cofx} public-key]

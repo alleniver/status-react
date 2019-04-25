@@ -154,9 +154,9 @@
             (navigation/navigate-to-cofx :contact-toggle-list nil)))
 
 (fx/defn set-tribute
-  [{:keys [db] :as cofx} identity tribute-to-talk]
+  [{:keys [db] :as cofx} public-key tribute-to-talk]
   (let [contact (-> (or (build-contact cofx public-key)
                         (get-in db [:contacts/contacts public-key]))
                     (assoc :tribute-to-talk (or tribute-to-talk
                                                 {:disabled? true})))]
-    {:db (assoc-in db [:contacts/contacts identity] contact)}))
+    {:db (assoc-in db [:contacts/contacts public-key] contact)}))

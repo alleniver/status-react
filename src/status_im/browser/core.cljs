@@ -67,14 +67,14 @@
     (cond-> browser history-host (assoc :unsafe? (dependencies/phishing-detect history-host)))))
 
 (defn resolve-ens-content-callback [hex]
-  (let [hash (when hex (multihash/base58 (multihash/create :sha2-256 (subs hex 2))))]
+  (let [hash (when (and hex (not= hex "0x")) (multihash/base58 (multihash/create :sha2-256 (subs hex 2))))]
     (if (and hash (not= hash resolver/default-hash))
       (re-frame/dispatch [:browser.callback/resolve-ens-multihash-success constants/ipfs-proto-code hash])
       (re-frame/dispatch [:browser.callback/resolve-ens-contenthash]))))
 
 (defn resolve-ens-contenthash-callback [hex]
   (let [proto-code (when hex (subs hex 2 4))
-        hash (when hex (multihash/base58 (multihash/create :sha2-256 (subs hex 12))))]
+        hash (when hex (multihash/base58 (multihash/create :sha2-256 (subs hex 14))))]
     (if (and proto-code (#{constants/swarm-proto-code constants/ipfs-proto-code} proto-code) hash (not= hash resolver/default-hash))
       (re-frame/dispatch [:browser.callback/resolve-ens-multihash-success proto-code hash])
       (re-frame/dispatch [:browser.callback/resolve-ens-multihash-error]))))

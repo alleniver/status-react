@@ -1,12 +1,13 @@
 (ns status-im.tribute-to-talk.db
-  (:require [status-im.contact.db :as contact]
+  (:require [status-im.contact.db :as contact.db]
             [status-im.utils.fx :as fx]
-            [status-im.utils.ethereum.core :as ethereum]))
+            [status-im.utils.ethereum.core :as ethereum]
+            [status-im.data-store.contacts :as contacts-store]))
 
 (fx/defn add-to-whitelist
   "Add contact to whitelist"
   [{:keys [db]} public-key]
-  {:db (update db :contacts/whitelist #(conj (or % (hash-set)) public-key))})
+  {:db (update db :contacts/whitelist (fnil conj #{}) public-key)})
 
 (defn get-settings
   [db]
@@ -22,8 +23,8 @@
   [db snt-amount tribute-tx-id from-public-key]
   (let [{:keys [value confirmations from]} (get-in db [:wallet :transactions tribute-tx-id])]
     (and (pos? (js/parseInt (or confirmations "0")))
-         (<= snt-amount (/ value 10E18))
-         (= (ethereum/address= (contact/public-key->address from-public-key)
+         (<= snt-amount (/ value 10E17))
+         (= (ethereum/address= (contact.db/public-key->address from-public-key)
                                from)))))
 
 (defn whitelisted-by? [{:keys [system-tags]}]
@@ -43,9 +44,26 @@
               (conj acc public-key) acc))
           (hash-set) contacts))
 
-(fx/defn mark-tribute-received [{:keys [db] :as cofx} public-key]
-  {:db (update-in db [:contacts/contacts public-key :system-tags]
-                  #(conj % :tribute-to-talk/received))})
+(defn- mark-tribute
+  [{:keys [db now] :as cofx} public-key tag]
+  (let [contact (-> (contact.db/public-key->contact
+                     (:contacts/contacts db)
+                     public-key)
+                    (assoc :last-updated now)
+                    (update :system-tags conj tag))]
+    (fx/merge cofx
+              {:db (-> db
+                       (assoc-in [:contacts/contacts public-key] contact))
+               :data-store/tx [(contacts-store/save-contact-tx contact)]}
+              (add-to-whitelist public-key))))
+
+(fx/defn mark-tribute-paid
+  [cofx public-key]
+  (mark-tribute cofx public-key :tribute-to-talk/paid))
+
+(fx/defn mark-tribute-received
+  [cofx public-key]
+  (mark-tribute cofx public-key :tribute-to-talk/received))
 
 (fx/defn enable-whitelist
   [{:keys [db] :as cofx}]
@@ -69,5 +87,4 @@
                 (valid-tribute-tx? db snt-amount tribute-tx-id from))
         (fx/merge cofx
                   received-message-fx
-                  (add-to-whitelist from)
                   (mark-tribute-received from))))))

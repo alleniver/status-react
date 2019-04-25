@@ -280,22 +280,23 @@
 
 (fx/defn check-pay-tribute-tx
   [{:keys [db] :as cofx} public-key]
-  (let [tribute-tx-id (get-in db [:contacts/contacts public-key :tribute-to-talk :tx-id])
-        confirmations (-> (get-in db [:wallet :transactions tribute-tx-id :confirmations] 0)
+  (let [tribute-tx-id (get-in db [:contacts/contacts public-key
+                                  :tribute-to-talk :tx-id])
+        confirmations (-> (get-in db [:wallet :transactions
+                                      tribute-tx-id :confirmations] 0)
                           js/parseInt)
         paid? (<= 1 confirmations)]
     (if paid?
-      (fx/merge
-       {:db (update-in db [:contacts/contacts public-key :system-tags]
-                       #(conj % :tribute-to-talk/paid))}
-       (tribute-to-talk.db/add-to-whitelist public-key))
+      (tribute-to-talk.db/mark-tribute-paid cofx public-key)
       {:dispatch-later [{:ms 10000
-                         :dispatch [:tribute-to-talk/check-pay-tribute-tx-timeout public-key]}]})))
+                         :dispatch [:tribute-to-talk/check-pay-tribute-tx-timeout
+                                    public-key]}]})))
 
 (fx/defn on-tribute-transaction-sent
   [{:keys [db] :as cofx} public-key tx-id]
   (fx/merge cofx
-            {:db (assoc-in db [:contacts/contacts public-key :tribute-to-talk :tx-id] tx-id)}
+            {:db (assoc-in db [:contacts/contacts public-key
+                               :tribute-to-talk :tx-id] tx-id)}
             (navigation/navigate-to-clean :wallet-transaction-sent-modal {})
             (check-pay-tribute-tx public-key)))
 
@@ -345,25 +346,32 @@
         (cond
           failed?
           (fx/merge cofx
-                    {:db (assoc-in db [:navigation/screen-params :tribute-to-talk :state] :transaction-failed)}
+                    {:db (assoc-in db [:navigation/screen-params
+                                       :tribute-to-talk :state]
+                                   :transaction-failed)}
                     (update-settings {:update nil}))
 
           confirmed?
           (fx/merge cofx
-                    {:db (assoc-in db [:navigation/screen-params :tribute-to-talk :state] :completed)}
+                    {:db (assoc-in db [:navigation/screen-params
+                                       :tribute-to-talk :state]
+                                   :completed)}
                     check-own-manifest
                     (update-settings {:update nil}))
 
           (not confirmed?)
-          {:dispatch-later [{:ms       10000
-                             :dispatch [:tribute-to-talk/check-set-manifest-transaction-timeout]}]})))))
+          {:dispatch-later
+           [{:ms       10000
+             :dispatch [:tribute-to-talk/check-set-manifest-transaction-timeout]}]})))))
 
 (fx/defn on-set-manifest-transaction-completed
   [{:keys [db] :as cofx} transaction-hash]
   (let [{:keys [snt-amount message]} (get-in db [:navigation/screen-params
                                                  :tribute-to-talk])]
     (fx/merge cofx
-              {:db (assoc-in db [:navigation/screen-params :tribute-to-talk :state] :pending)}
+              {:db (assoc-in db [:navigation/screen-params
+                                 :tribute-to-talk :state]
+                             :pending)}
               (navigation/navigate-to-clean :wallet-transaction-sent-modal {})
               (update-settings {:update {:transaction transaction-hash
                                          :snt-amount  snt-amount

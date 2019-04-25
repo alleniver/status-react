@@ -128,7 +128,9 @@
                                        :from signature
                                        :dedup-id (:dedup-id cofx)
                                        :js-obj (:js-obj cofx))]}]
-      (tribute-to-talk/filter-message cofx received-message-fx
+      (println :filter)
+      (tribute-to-talk/filter-message cofx
+                                      received-message-fx
                                       message-type
                                       (get-in this [:content :tribute-tx-id])
                                       signature)))

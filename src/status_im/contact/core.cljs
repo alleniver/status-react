@@ -155,5 +155,8 @@
 
 (fx/defn set-tribute
   [{:keys [db] :as cofx} identity tribute-to-talk]
-  {:db (assoc-in db [:contacts/contacts identity :tribute-to-talk] (or tribute-to-talk
-                                                                       {:disabled? true}))})
+  (let [contact (-> (or (build-contact cofx public-key)
+                        (get-in db [:contacts/contacts public-key]))
+                    (assoc :tribute-to-talk (or tribute-to-talk
+                                                {:disabled? true})))]
+    {:db (assoc-in db [:contacts/contacts identity] contact)}))

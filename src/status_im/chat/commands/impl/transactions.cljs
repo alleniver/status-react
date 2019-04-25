@@ -314,7 +314,6 @@
                                     :public-key  public-key
                                     :from-chat?  true
                                     :symbol      symbol
-                                    :amount      internal-value
                                     :amount-text amount}}))
       (let [recipient-contact     (or
                                    (get-in db [:contacts/contacts (:current-chat-id db)])

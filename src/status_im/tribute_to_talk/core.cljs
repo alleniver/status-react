@@ -2,6 +2,7 @@
   (:refer-clojure :exclude [remove])
   (:require [clojure.string :as string]
             [re-frame.core :as re-frame]
+            [taoensso.timbre :as log]
             [status-im.accounts.update.core :as accounts.update]
             [status-im.contact.core :as contact]
             [status-im.contact.db :as contact.db]

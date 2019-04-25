@@ -147,18 +147,17 @@
        message-view]]]))
 
 (defn tribute-to-talk-header
-  []
-  [react/view
-   [react/view (assoc (dissoc style/empty-chat-container :flex)
-                      :justify-content :flex-end)
-    [react/view {:style {:align-items :center :justify-content :flex-end}}
-     [react/nested-text {:style (assoc style/intro-header-description
-                                       :margin-top 24)}
-      [{:style (assoc style/intro-header-description :margin-top 24)}
-       (i18n/label :t/tribute-required-by-account {:account-name name})]
-      [{:style {:color colors/blue}
-        :on-press #(re-frame/dispatch [:navigate-to :tribute-learn-more])}
-       (str " " (i18n/label :learn-more))]]]]])
+  [name]
+  [react/view (assoc (dissoc style/empty-chat-container :flex)
+                     :justify-content :flex-end)
+   [react/view {:style {:align-items :center :justify-content :flex-end}}
+    [react/nested-text {:style (assoc style/intro-header-description
+                                      :margin-top 24)}
+     [{:style (assoc style/intro-header-description :margin-top 24)}
+      (i18n/label :t/tribute-required-by-account {:account-name name})]
+     [{:style {:color colors/blue}
+       :on-press #(re-frame/dispatch [:navigate-to :tribute-learn-more])}
+      (str " " (i18n/label :learn-more))]]]])
 
 (defn empty-chat-container-one-to-one
   [{:keys [chat-id name contact]
@@ -177,7 +176,7 @@
         show-header?
         (let [{:keys [snt-amount message status]} (:tribute-to-talk contact)]
           [react/view
-           [tribute-to-talk-header]
+           [tribute-to-talk-header name]
            [react/view {:style {:align-items :flex-start
                                 :margin-top 32
                                 :margin-left 8}}

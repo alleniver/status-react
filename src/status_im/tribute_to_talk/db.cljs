@@ -60,14 +60,14 @@
   in the whitelist or there must be a valid tribute transaction id passed
   along the message"
   [{:keys [db] :as cofx} received-message-fx message-type tribute-tx-id from]
-  (let [{:keys [snt-amount]} (get-settings db)
-        contact (get-in db [:contacts/contacts from])]
-    (if (or (not= :user-message message-type)
-            (not snt-amount)
-            ((:contacts/whitelist db) from)
-            (valid-tribute-tx? db snt-amount tribute-tx-id from))
-      (fx/merge cofx
-                received-message-fx
-                (add-to-whitelist from)
-                (mark-tribute-received from))
-      received-message-fx)))
+  (if (not= :user-message message-type)
+    received-message-fx
+    (let [{:keys [snt-amount]} (get-settings db)
+          contact (get-in db [:contacts/contacts from])]
+      (when (or (not snt-amount)
+                ((:contacts/whitelist db) from)
+                (valid-tribute-tx? db snt-amount tribute-tx-id from))
+        (fx/merge cofx
+                  received-message-fx
+                  (add-to-whitelist from)
+                  (mark-tribute-received from))))))

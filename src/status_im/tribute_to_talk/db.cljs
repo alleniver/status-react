@@ -23,7 +23,7 @@
   [db snt-amount tribute-tx-id from-public-key]
   (let [{:keys [value confirmations from]} (get-in db [:wallet :transactions tribute-tx-id])]
     (and (pos? (js/parseInt (or confirmations "0")))
-         (<= snt-amount (/ value 10E17))
+         (<= snt-amount (/ value 1e18))
          (= (ethereum/address= (contact.db/public-key->address from-public-key)
                                from)))))
 

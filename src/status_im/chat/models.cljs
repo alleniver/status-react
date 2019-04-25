@@ -254,7 +254,7 @@
             (contact-code/listen-to-chat chat-id)
             (when platform/desktop?
               (mark-messages-seen chat-id))
-            #(when (one-to-one-chat? % chat-id)
+            #_(when (one-to-one-chat? % chat-id)
                (contact.core/create-contact % chat-id))
             (tribute-to-talk/check-manifest chat-id)))
 

@@ -263,6 +263,7 @@
         all-tokens           (:wallet/all-tokens db)
         {:keys [decimals]}   (tokens/asset-for all-tokens chain symbol)
         {:keys [value]}      (wallet.db/parse-amount snt-amount decimals)
+        amount-text          (str snt-amount)
         internal-value       (money/formatted->internal value symbol decimals)]
     (contracts/call cofx
                     {:contract :status/snt
@@ -273,7 +274,7 @@
                                 :from-chat?  true
                                 :symbol      symbol
                                 :amount      internal-value
-                                :amount-text (str snt-amount)
+                                :amount-text amount-text
                                 :send-transaction-message? true}
                      :on-result [:tribute-to-talk.ui/on-tribute-transaction-sent
                                  identity]})))

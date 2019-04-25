@@ -262,8 +262,8 @@
         symbol               :STT
         all-tokens           (:wallet/all-tokens db)
         {:keys [decimals]}   (tokens/asset-for all-tokens chain symbol)
-        {:keys [value]}      (wallet.db/parse-amount snt-amount decimals)
         amount-text          (str snt-amount)
+        {:keys [value]}      (wallet.db/parse-amount amount-text decimals)
         internal-value       (money/formatted->internal value symbol decimals)]
     (contracts/call cofx
                     {:contract :status/snt

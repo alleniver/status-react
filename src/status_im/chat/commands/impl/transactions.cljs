@@ -304,16 +304,17 @@
             symbol             :STT
             all-tokens         (:wallet/all-tokens db)
             {:keys [decimals]} (tokens/asset-for all-tokens chain symbol)
-            {:keys [value]}    (wallet.db/parse-amount amount decimals)]
+            {:keys [value]}    (wallet.db/parse-amount amount decimals)
+            internal-value     (money/formatted->internal value symbol decimals)]
         (contracts/call cofx
                         {:contract :status/snt
                          :method   :erc20/transfer
-                         :params   [address
-                                    (money/formatted->internal value symbol decimals)]
+                         :params   [address internal-value]
                          :details  {:to-name     name
                                     :public-key  public-key
                                     :from-chat?  true
                                     :symbol      symbol
+                                    :amount      internal-value
                                     :amount-text amount}}))
       (let [recipient-contact     (or
                                    (get-in db [:contacts/contacts (:current-chat-id db)])

@@ -254,25 +254,26 @@
 
 (fx/defn pay-tribute
   [{:keys [db] :as cofx} identity]
-  (let [{:keys [name address public-key tribute] :as recipient-contact}
+  (let [{:keys [name address public-key tribute-to-talk] :as recipient-contact}
         (get-in db [:contacts/contacts identity])
-        sender-account     (:account/account db)
-        chain              (keyword (:chain db))
-        symbol             :STT
-        all-tokens         (:wallet/all-tokens db)
-        amount             (str tribute)
-        {:keys [decimals]} (tokens/asset-for all-tokens chain symbol)
-        {:keys [value]}    (wallet.db/parse-amount amount decimals)]
+        {:keys [snt-amount]} tribute-to-talk
+        sender-account       (:account/account db)
+        chain                (keyword (:chain db))
+        symbol               :STT
+        all-tokens           (:wallet/all-tokens db)
+        {:keys [decimals]}   (tokens/asset-for all-tokens chain symbol)
+        {:keys [value]}      (wallet.db/parse-amount snt-amount decimals)
+        internal-value       (money/formatted->internal value symbol decimals)]
     (contracts/call cofx
                     {:contract :status/snt
                      :method   :erc20/transfer
-                     :params   [address
-                                (money/formatted->internal value symbol decimals)]
+                     :params   [address internal-value]
                      :details  {:to-name     name
                                 :public-key  public-key
                                 :from-chat?  true
                                 :symbol      symbol
-                                :amount-text amount
+                                :amount      internal-value
+                                :amount-text (str snt-amount)
                                 :send-transaction-message? true}
                      :on-result [:tribute-to-talk.ui/on-tribute-transaction-sent
                                  identity]})))

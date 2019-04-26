@@ -261,6 +261,7 @@
         chain                (keyword (:chain db))
         symbol               :STT
         all-tokens           (:wallet/all-tokens db)
+        wallet-balance       (get-in db [:wallet :balance symbol])
         {:keys [decimals]}   (tokens/asset-for all-tokens chain symbol)
         amount-text          (str snt-amount)
         {:keys [value]}      (wallet.db/parse-amount amount-text decimals)
@@ -273,6 +274,8 @@
                                 :public-key  public-key
                                 :from-chat?  true
                                 :symbol      symbol
+                                :sufficient-funds? (or (nil? snt-amount)
+                                                       (money/sufficient-funds? snt-amount wallet-balance))
                                 :amount-text amount-text
                                 :send-transaction-message? true}
                      :on-result [:tribute-to-talk.ui/on-tribute-transaction-sent

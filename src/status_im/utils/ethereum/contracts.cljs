@@ -49,7 +49,8 @@
                   callback)))
 
 (fx/defn call
-  [{:keys [db] :as cofx} {:keys [contract method params callback on-result on-error details]}]
+  [{:keys [db] :as cofx}
+   {:keys [contract method params callback on-result on-error details]}]
   (let [chain-keyword (-> (get-in db [:account/account :networks (:network db)])
                           ethereum/network->chain-keyword)
         contract-address (get-in contracts [contract :address chain-keyword])]

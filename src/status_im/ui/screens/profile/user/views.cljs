@@ -281,6 +281,11 @@
             :new?                (not seen?)
             :action-fn           #(re-frame/dispatch
                                    [:tribute-to-talk.ui/menu-item-pressed])}
+     (and (not (and seen?
+                    snt-amount
+                    (#{:signing :pending :transaction-failed} state))))
+     (assoc :subtext (i18n/label :t/tribute-to-talk-desc))
+
      (#{:signing :pending} state)
      (assoc :activity-indicator {:animating true
                                  :color colors/blue}
@@ -298,10 +303,7 @@
 
      (and (= state :completed)
           (not-empty snt-amount))
-     (assoc :accessory-value (str snt-amount " SNT"))
-
-     (not (and seen? snt-amount))
-     (assoc :subtext (i18n/label :t/tribute-to-talk-desc)))])
+     (assoc :accessory-value (str snt-amount " SNT")))])
 
 (defview extensions-settings []
   (letsubs [{:keys [label view on-close]} [:get-screen-params :my-profile-ext-settings]]

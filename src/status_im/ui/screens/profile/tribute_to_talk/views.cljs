@@ -304,7 +304,7 @@
          nil]])]]])
 
 (defn learn-more [owner?]
-  [react/view
+  [react/view {:flex 1}
    (when-not owner?
      [toolbar/toolbar nil toolbar/default-nav-close
       [react/view

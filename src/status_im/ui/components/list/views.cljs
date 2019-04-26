@@ -80,12 +80,13 @@
     s]))
 
 (defn item-secondary
-  [{:keys [style]} s]
-  [react/text
-   {:style           (merge styles/secondary-text style)
-    :ellipsize-mode  :middle
-    :number-of-lines 1}
-   s])
+  ([s] (item-secondary nil s))
+  ([{:keys [style]} s]
+   [react/text
+    {:style           (merge styles/secondary-text style)
+     :ellipsize-mode  :middle
+     :number-of-lines 1}
+    s]))
 
 (defn item-content
   [& children]

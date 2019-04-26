@@ -101,7 +101,7 @@
         (get-in cofx [:db :navigation/screen-params :tribute-to-talk])
         manifest {:tribute-to-talk
                   {:message message
-                   :snt-amount (js/parseInt snt-amount)}}]
+                   :snt-amount (tribute-to-talk.db/to-wei snt-amount)}}]
     (ipfs/add cofx
               {:value (js/JSON.stringify
                        (clj->js manifest))

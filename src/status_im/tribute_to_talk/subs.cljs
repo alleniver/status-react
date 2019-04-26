@@ -33,7 +33,7 @@
                        prices)
                       "0")]
      (cond-> {:seen? seen?
-              :snt-amount (str snt-amount)
+              :snt-amount (tribute-to-talk/from-wei snt-amount)
               :message message
               :disabled? (nil? snt-amount)
               :error error

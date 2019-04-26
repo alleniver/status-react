@@ -1,5 +1,18 @@
 (ns status-im.tribute-to-talk.db
-  (:require [status-im.utils.ethereum.core :as ethereum]))
+  (:require [status-im.js-dependencies :as dependencies]
+            [status-im.utils.ethereum.core :as ethereum]))
+
+(def utils dependencies/web3-utils)
+
+(defn to-wei
+  [s]
+  (when s
+    (.toWei utils s)))
+
+(defn from-wei
+  [s]
+  (when s
+    (.fromWei utils s)))
 
 (defn get-settings
   [db]

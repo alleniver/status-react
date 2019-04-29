@@ -58,7 +58,7 @@
                  (:snt-amount settings)
                  (merge {:step :edit
                          :editing? true}
-                        settings)
+                        (update settings :snt-amount tribute-to-talk.db/from-wei))
                  :else
                  {:step :intro})))))
 
